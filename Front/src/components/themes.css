@@ -1,0 +1,192 @@
+.app-container {
+  min-height: 100vh;
+  padding: 20px;
+  font-family: 'Courier New', Courier, monospace;
+  transition: background 0.3s, color 0.3s;
+}
+
+/* Шапка приложения */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid;
+  padding-bottom: 10px;
+}
+
+/* === ТЕМНАЯ ТЕМА === */
+.theme-dark {
+  background-color: #0d1117;
+  color: #00ff66;
+}
+
+.theme-dark h1, .theme-dark h2, .theme-dark h3, .theme-dark h4, .theme-dark p, .theme-dark span, .theme-dark label, .theme-dark td, .theme-dark th {
+  color: #00ff66;
+}
+
+.theme-dark button {
+  background-color: #161b22;
+  color: #00ff66;
+  border: 2px solid #00ff66;
+  padding: 10px 20px;
+  margin: 5px;
+  cursor: pointer;
+  font-family: monospace;
+}
+
+.theme-dark button:hover {
+  background-color: #00ff66;
+  color: #0d1117;
+}
+
+.theme-dark input, .theme-dark textarea {
+  background-color: #161b22;
+  color: #00ff66;
+  border: 1px solid #00ff66;
+  padding: 12px;
+  border-radius: 4px;
+}
+
+/* === СВЕТЛАЯ ТЕМА === */
+.theme-light {
+  background-color: #f0f2f5;
+  color: #1c1e21;
+}
+
+.theme-light h1, .theme-light h2, .theme-light h3, .theme-light h4, .theme-light p, .theme-light span, .theme-light label, .theme-light td, .theme-light th {
+  color: #1c1e21;
+}
+
+.theme-light button {
+  background-color: #ffffff;
+  color: #1c1e21;
+  border: 2px solid #ccd0d5;
+  padding: 10px 20px;
+  margin: 5px;
+  cursor: pointer;
+}
+
+.theme-light button:hover {
+  background-color: #e4e6eb;
+}
+
+.theme-light input, .theme-light textarea {
+  background-color: #ffffff;
+  color: #1c1e21;
+  border: 1px solid #ccd0d5;
+  padding: 12px;
+}
+
+/* === СЕТКА И ЛЕЙАУТ ПРИЛОЖЕНИЯ === */
+
+.app-layout {
+  display: flex;
+  gap: 20px;
+  margin-top: 15px;
+  align-items: flex-start;
+}
+
+.main-content {
+  flex: 1;
+  width: 100%;
+}
+
+/* Сайдбар */
+.sidebar-dock {
+  border-right: 2px solid;
+  padding: 10px;
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Главный дашборд хранилища */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  border: 1px dashed;
+  padding: 15px;
+  text-align: center;
+}
+
+/* Индикатор прогресса 40 ГБ диска */
+.progress-bar-container {
+  width: 100%;
+  height: 20px;
+  border: 1px solid;
+  margin-top: 10px;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background-color: #00ff66;
+  transition: width 0.4s ease;
+}
+
+/* Таблицы файлов и логов */
+.storage-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+}
+
+.storage-table th, .storage-table td {
+  border: 1px solid;
+  padding: 10px;
+  text-align: left;
+}
+
+/* Опасные кнопки и статусы */
+.danger-button {
+  color: #ff4444;
+  border-color: #ff4444;
+}
+
+.badge-blocked {
+  color: #ff4444;
+  font-weight: bold;
+}
+
+.badge-approved {
+  color: #00ff66;
+  font-weight: bold;
+}
+
+/* === СТРОГИЙ БЛОК ПРЕДПРОСМОТРА ФАЙЛОВ === */
+
+.preview-box, .preview-container {
+  margin-top: 20px;
+  text-align: center;
+  padding: 15px;
+  border: 1px solid;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* Жесткая фиксация изображений, видео и документов */
+.file-preview-img, 
+.preview-box img,
+.preview-box video, 
+.preview-box iframe {
+  max-width: 100%;
+  max-height: 400px;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  margin: 10px auto;
+}
+
+/* Текстовая область предпросмотра */
+.file-text-area {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+}
