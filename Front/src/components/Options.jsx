@@ -32,7 +32,7 @@ export default function Options({ SetScreen, themes, switchTheme }){
             <div className="options-section">
                 <h3>Оформление</h3>
                 <p>Текущая тема: {themes}</p>
-                <button onClick={switchTheme}>Сменить тему 𖤓/☽</button>
+                <button onClick={switchTheme}>Сменить тему ☀/☽</button>
             </div>
 
             <hr />

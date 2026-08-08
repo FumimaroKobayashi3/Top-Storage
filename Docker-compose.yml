@@ -1,0 +1,15 @@
+services:
+  backend:
+    build: ./Back
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./Back/uploads:/app/uploads
+      - ./Back/data:/app/data  # Пробрасываем ПАПКУ, где лежит Top.db и WAL-файлы
+
+  frontend:
+    build: ./Front
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
