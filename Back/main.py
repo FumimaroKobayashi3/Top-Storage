@@ -1,27 +1,28 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import RedirectResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+from pathlib import Path
+from dotenv import dotenv_values
 import requests
-import os
 import hashlib
 import sqlite3
 import InitDB
 import uuid
 import time
-from dotenv import load_dotenv
 
-# Загружаем ключ из .env
-load_dotenv()
+# Чтение ключа из .env без модуля os
+config = dotenv_values(".env")
+VT_KEY = config.get("VT_KEY", "")
 
 # Автоматическая инициализация базы при старте скрипта
 InitDB.init_db()
 
 app = FastAPI()
-VT_KEY = os.getenv('VT_KEY')
 
-UPLOAD_DIR = "uploads"
-if not os.path.exists(UPLOAD_DIR):
-    os.makedirs(UPLOAD_DIR)
+# Создание директории для загрузок через стандартный объект Path
+UPLOAD_DIR = Path("uploads")
+if not UPLOAD_DIR.exists():
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 app.add_middleware(
     CORSMiddleware,
@@ -43,17 +44,28 @@ def getStorageStats():
 
     cursor.execute("SELECT SUM(FileSize), COUNT(*) FROM FILESDB WHERE IsTrash = 0")
     row = cursor.fetchone()
-    used_bytes = row[0] if row and row[0] else 0
-    total_files = row[1] if row and row[1] else 0
+
+    used_bytes = 0
+    total_files = 0
+    if row is not None:
+        if row[0] is not None:
+            used_bytes = row[0]
+        if row[1] is not None:
+            total_files = row[1]
 
     cursor.execute("SELECT COUNT(*) FROM SECURITYDB WHERE EventType = 'VIRUS_BLOCKED'")
     blocked_viruses = cursor.fetchone()[0]
 
     cursor.execute("SELECT StorageLimitBytes FROM PETSETTINGSDB WHERE SettingID = 1")
     setting = cursor.fetchone()
-    limit_bytes = setting[0] if setting else 42949672960
+
+    limit_bytes = 42949672960
+    if setting is not None:
+        if setting[0] is not None:
+            limit_bytes = setting[0]
 
     connection.close()
+
     return {
         "used_bytes": used_bytes,
         "limit_bytes": limit_bytes,
@@ -69,10 +81,21 @@ def getFilesList():
     cursor.execute("SELECT FileID, Filename, Filepath, FileSize, FileType, FileHash, UploadDate FROM FILESDB WHERE IsTrash = 0 ORDER BY FileID DESC")
     rows = cursor.fetchall()
     connection.close()
-    return [{
-        "FileID": r[0], "Filename": r[1], "Filepath": r[2],
-        "FileSize": r[3], "FileType": r[4], "FileHash": r[5], "UploadDate": r[6]
-    } for r in rows]
+
+    result = []
+    for r in rows:
+        file_dict = {
+            "FileID": r[0],
+            "Filename": r[1],
+            "Filepath": r[2],
+            "FileSize": r[3],
+            "FileType": r[4],
+            "FileHash": r[5],
+            "UploadDate": r[6]
+        }
+        result.append(file_dict)
+
+    return result
 
 # Список файлов в корзине
 @app.get("/api/trash")
@@ -82,10 +105,20 @@ def getTrashFiles():
     cursor.execute("SELECT FileID, Filename, Filepath, FileSize, FileType, UploadDate FROM FILESDB WHERE IsTrash = 1 ORDER BY FileID DESC")
     rows = cursor.fetchall()
     connection.close()
-    return [{
-        "FileID": r[0], "Filename": r[1], "Filepath": r[2],
-        "FileSize": r[3], "FileType": r[4], "UploadDate": r[5]
-    } for r in rows]
+
+    result = []
+    for r in rows:
+        trash_dict = {
+            "FileID": r[0],
+            "Filename": r[1],
+            "Filepath": r[2],
+            "FileSize": r[3],
+            "FileType": r[4],
+            "UploadDate": r[5]
+        }
+        result.append(trash_dict)
+
+    return result
 
 # Перемещение в корзину
 @app.post("/api/trash/move/{file_id}")
@@ -114,14 +147,17 @@ def emptyTrash():
     cursor = connection.cursor()
     cursor.execute("SELECT Filepath FROM FILESDB WHERE IsTrash = 1")
     rows = cursor.fetchall()
+
     for r in rows:
-        clean_filename = os.path.basename(r[0])
-        real_path = os.path.join(UPLOAD_DIR, clean_filename)
-        if os.path.exists(real_path):
+        raw_path = r[0]
+        clean_filename = Path(raw_path).name
+        real_path = UPLOAD_DIR / clean_filename
+        if real_path.exists():
             try:
-                os.remove(real_path)
+                real_path.unlink()
             except Exception:
                 pass
+
     cursor.execute("DELETE FROM FILESDB WHERE IsTrash = 1")
     connection.commit()
     connection.close()
@@ -133,14 +169,23 @@ async def uploadFile(file: UploadFile = File(...)):
     file_bytes = await file.read()
     file_size = len(file_bytes)
     file_hash = hashlib.sha256(file_bytes).hexdigest()
-    content_type = file.content_type or "application/octet-stream"
+
+    if file.content_type:
+        content_type = file.content_type
+    else:
+        content_type = "application/octet-stream"
 
     connection = sqlite3.connect('Top.db')
     cursor = connection.cursor()
 
     cursor.execute("SELECT SUM(FileSize) FROM FILESDB WHERE IsTrash = 0")
     row = cursor.fetchone()
-    current_used = row[0] if row and row[0] else 0
+
+    current_used = 0
+    if row is not None:
+        if row[0] is not None:
+            current_used = row[0]
+
     limit_bytes = 42949672960
 
     if current_used + file_size > limit_bytes:
@@ -176,7 +221,7 @@ async def uploadFile(file: UploadFile = File(...)):
         return {"status": "blocked", "message": f"Файл заблокирован! Обнаружено угроз: {ant_count}"}
 
     unique_filename = f"{file_hash[:8]}_{file.filename}"
-    file_path = os.path.join(UPLOAD_DIR, unique_filename)
+    file_path = UPLOAD_DIR / unique_filename
 
     with open(file_path, "wb") as buffer:
         buffer.write(file_bytes)
@@ -184,7 +229,7 @@ async def uploadFile(file: UploadFile = File(...)):
     cursor.execute("""
         INSERT INTO FILESDB (Filename, Filepath, FileSize, FileType, FileHash, IsTrash)
         VALUES (?, ?, ?, ?, ?, 0)
-    """, (file.filename, file_path, file_size, content_type, file_hash))
+    """, (file.filename, str(file_path), file_size, content_type, file_hash))
 
     cursor.execute("""
         INSERT INTO SECURITYDB (EventType, Details, FileName, FileHash, ScanResult, AntVirCounter, TotalAntViruses)
@@ -204,12 +249,13 @@ def downloadFile(file_id: int):
     row = cursor.fetchone()
     connection.close()
 
-    if row:
-        clean_filename = os.path.basename(row[1])
-        real_path = os.path.join(UPLOAD_DIR, clean_filename)
-        if os.path.exists(real_path):
-            return FileResponse(path=real_path, filename=row[0], media_type=row[2])
+    if row is not None:
+        clean_filename = Path(row[1]).name
+        real_path = UPLOAD_DIR / clean_filename
+        if real_path.exists():
+            return FileResponse(path=str(real_path), filename=row[0], media_type=row[2])
         raise HTTPException(status_code=404, detail="Файл на диске не найден")
+
     raise HTTPException(status_code=404, detail="Запись о файле не найдена")
 
 # Окончательное удаление файла
@@ -219,15 +265,21 @@ def deleteFile(file_id: int):
     cursor = connection.cursor()
     cursor.execute("SELECT Filepath, Filename FROM FILESDB WHERE FileID = ?", (file_id,))
     row = cursor.fetchone()
-    if row:
-        clean_filename = os.path.basename(row[0])
-        real_path = os.path.join(UPLOAD_DIR, clean_filename)
-        if os.path.exists(real_path):
-            os.remove(real_path)
+
+    if row is not None:
+        clean_filename = Path(row[0]).name
+        real_path = UPLOAD_DIR / clean_filename
+        if real_path.exists():
+            try:
+                real_path.unlink()
+            except Exception:
+                pass
+
         cursor.execute("DELETE FROM FILESDB WHERE FileID = ?", (file_id,))
         connection.commit()
         connection.close()
         return {"status": "ok", "message": f"Файл {row[1]} окончательно удален"}
+
     connection.close()
     return {"status": "error", "message": "Файл не найден"}
 
@@ -239,11 +291,23 @@ def getSecurityLogs():
     cursor.execute("SELECT LogId, EventType, Details, FileName, FileHash, ScanResult, AntVirCounter, TotalAntViruses, Timestamp FROM SECURITYDB ORDER BY LogId DESC")
     rows = cursor.fetchall()
     connection.close()
-    return [{
-        "LogId": r[0], "EventType": r[1], "Details": r[2], "FileName": r[3],
-        "FileHash": r[4], "ScanResult": r[5], "AntVirCounter": r[6],
-        "TotalAntViruses": r[7], "Timestamp": r[8]
-    } for r in rows]
+
+    result = []
+    for r in rows:
+        log_dict = {
+            "LogId": r[0],
+            "EventType": r[1],
+            "Details": r[2],
+            "FileName": r[3],
+            "FileHash": r[4],
+            "ScanResult": r[5],
+            "AntVirCounter": r[6],
+            "TotalAntViruses": r[7],
+            "Timestamp": r[8]
+        }
+        result.append(log_dict)
+
+    return result
 
 # Генерация сгорающей ссылки
 @app.post("/api/files/share/{file_id}")
@@ -252,12 +316,18 @@ def createLink(file_id: int, hours: int = 72):
     cursor = connection.cursor()
     cursor.execute("SELECT FileID FROM FILESDB WHERE FileID = ? AND IsTrash = 0", (file_id,))
     row = cursor.fetchone()
-    if not row:
+
+    if row is None:
         connection.close()
         raise HTTPException(status_code=404, detail="Файл не найден")
 
     current_time = int(time.time())
-    expired_timestamp = current_time + (hours * 3600) if hours > 0 else 0
+
+    if hours > 0:
+        expired_timestamp = current_time + (hours * 3600)
+    else:
+        expired_timestamp = 0
+
     unique_code = str(uuid.uuid4())[:8]
     public_token = f"{unique_code}_{expired_timestamp}"
 
@@ -274,8 +344,12 @@ def downloadPubFile(token: str):
     cursor.execute("SELECT FileID, Filename, Filepath, FileType FROM FILESDB WHERE IsPublic = 1 AND PublicToken = ?", (token,))
     row = cursor.fetchone()
 
-    if row:
-        file_id, filename, raw_filepath, filetype = row[0], row[1], row[2], row[3]
+    if row is not None:
+        file_id = row[0]
+        filename = row[1]
+        raw_filepath = row[2]
+        filetype = row[3]
+
         token_parts = token.split("_")
         expired_timestamp = int(token_parts[1])
         current_time = int(time.time())
@@ -287,10 +361,13 @@ def downloadPubFile(token: str):
             raise HTTPException(status_code=410, detail="Ссылка сгорела")
 
         connection.close()
-        clean_filename = os.path.basename(raw_filepath)
-        real_path = os.path.join(UPLOAD_DIR, clean_filename)
-        if os.path.exists(real_path):
-            return FileResponse(path=real_path, filename=filename, media_type=filetype)
+
+        clean_filename = Path(raw_filepath).name
+        real_path = UPLOAD_DIR / clean_filename
+
+        if real_path.exists():
+            return FileResponse(path=str(real_path), filename=filename, media_type=filetype)
+
         raise HTTPException(status_code=404, detail="Файл физически не найден")
 
     connection.close()

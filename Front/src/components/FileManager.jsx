@@ -209,11 +209,13 @@ export default function FileManager({ SetScreen }) {
                     ) : null}
 
                     {previewFile.FileType.includes("pdf") || previewFile.Filename.endsWith(".pdf") ? (
-                        <iframe 
-                            src={`http://127.0.0.1:8000/api/download/${previewFile.FileID}`} 
-                            title="PDF Preview" 
-                            className="file-preview-pdf"
-                        />
+                        <div className="pdf-preview-wrapper">
+                            <iframe 
+                                src={`http://127.0.0.1:8000/api/download/${previewFile.FileID}#toolbar=0`} 
+                                title="PDF Preview" 
+                                className="file-preview-pdf"
+                            />
+                        </div>
                     ) : null}
 
                     {previewFile.FileType.includes("video") || previewFile.Filename.endsWith(".mp4") || previewFile.Filename.endsWith(".avi") ? (
