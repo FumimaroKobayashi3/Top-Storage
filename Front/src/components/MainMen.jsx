@@ -28,26 +28,26 @@ export default function MainMen({ SetScreen }) {
 
     return (
         <div className="main-menu-container">
-            <h2>📊 Дашборд Хранилища «ТОП»</h2>
+            <h2>Дашборд Хранилища «ТОП»</h2>
             <p>Система защиты и контроля файлового пространства</p>
 
             <hr />
 
             <div className="dashboard-grid">
                 <div className="stat-card">
-                    <h4>💾 Занятое место</h4>
+                    <h4>Занятое место</h4>
                     <p>{usedGB} ГБ из {limitGB} ГБ</p>
                     <progress value={usedBytes} max={limitBytes} className="progress-bar-container" />
                 </div>
 
                 <div className="stat-card">
-                    <h4>📁 Активных файлов</h4>
+                    <h4>Активных файлов</h4>
                     <p>{stats.total_files || 0} шт.</p>
                     <button onClick={() => SetScreen("FileManager")}>Открыть диск</button>
                 </div>
 
                 <div className="stat-card">
-                    <h4>🛡️ Заблокировано угроз</h4>
+                    <h4>Заблокировано угроз</h4>
                     <p className="badge-blocked">{stats.blocked_viruses || 0} угроз</p>
                     <button onClick={() => SetScreen("TrashBin")}>Проверить корзину</button>
                 </div>

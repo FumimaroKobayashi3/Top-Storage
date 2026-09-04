@@ -102,14 +102,137 @@ export default function FileManager({ SetScreen }) {
         return true
     })
 
+    // Подготовка отображения статуса загрузки
+    let uploadStatusElement = null
+    if (uploadStatus !== "") {
+        uploadStatusElement = <p>{uploadStatus}</p>
+    }
+
+    // Подготовка строк таблицы (Замена тернарника)
+    let tableRowsElement = null
+    if (filteredFiles.length === 0) {
+        tableRowsElement = (
+            <tr>
+                <td colSpan="4">Файлы не найдены</td>
+            </tr>
+        )
+    } else {
+        tableRowsElement = filteredFiles.map(file => (
+            <tr key={file.FileID}>
+                <td>{file.Filename}</td>
+                <td>{file.FileType}</td>
+                <td>{file.FileSize}</td>
+                <td>
+                    <button onClick={() => openPreview(file)}>Предпросмотр</button>
+                    <a href={`http://127.0.0.1:8000/api/download/${file.FileID}`} download>
+                        <button>Скачать</button>
+                    </a>
+                    <button onClick={() => openShareBox(file.FileID)}>Поделиться</button>
+                    <button onClick={() => moveToTrash(file.FileID)} className="danger-button">В корзину</button>
+                </td>
+            </tr>
+        ))
+    }
+
+    // Подготовка окна сгорающей ссылки
+    let shareBoxElement = null
+    if (shareFileId !== null) {
+        let generatedLinkElement = null
+        if (generatedLink !== "") {
+            generatedLinkElement = (
+                <div>
+                    <br />
+                    <p><b>Готовая ссылка для скачивания:</b></p>
+                    <input type="text" value={generatedLink} readOnly />
+                </div>
+            )
+        }
+
+        shareBoxElement = (
+            <div className="preview-box">
+                <hr />
+                <h4>Публичный доступ (Сгорающая ссылка)</h4>
+                
+                <label>Срок жизни ссылки: </label>
+                <select value={shareHours} onChange={(e) => setShareHours(Number(e.target.value))}>
+                    <option value={2}>2 часа</option>
+                    <option value={5}>5 часов</option>
+                    <option value={24}>24 часа (1 день)</option>
+                    <option value={72}>72 часа (3 дня)</option>
+                    <option value={0}>Не удалять (вечная)</option>
+                </select>
+                
+                <br /><br />
+                <button onClick={() => generateShareLink(shareFileId)}>Сгенерировать ссылку</button>
+
+                {generatedLinkElement}
+
+                <br /><br />
+                <button onClick={() => setShareFileId(null)}>✘ Закрыть</button>
+            </div>
+        )
+    }
+
+    // Подготовка окна предпросмотра файлов
+    let previewBoxElement = null
+    if (previewFile !== null) {
+        let mediaElement = null
+
+        if (previewFile.FileType.includes("image")) {
+            mediaElement = (
+                <img 
+                    src={`http://127.0.0.1:8000/api/download/${previewFile.FileID}`} 
+                    alt="Превью" 
+                    className="file-preview-img" 
+                />
+            )
+        } else if (previewFile.FileType.includes("text")) {
+            mediaElement = (
+                <textarea value={previewTextContent} readOnly rows={8} className="file-text-area" />
+            )
+        } else if (previewFile.FileType.includes("pdf") || previewFile.Filename.endsWith(".pdf")) {
+            mediaElement = (
+                <div className="pdf-preview-wrapper">
+                    <iframe 
+                        src={`http://127.0.0.1:8000/api/download/${previewFile.FileID}#toolbar=0`} 
+                        title="PDF Preview" 
+                        className="file-preview-pdf"
+                    />
+                </div>
+            )
+        } else if (previewFile.FileType.includes("video") || previewFile.Filename.endsWith(".mp4") || previewFile.Filename.endsWith(".avi")) {
+            mediaElement = (
+                <video controls className="file-preview-video">
+                    <source src={`http://127.0.0.1:8000/api/download/${previewFile.FileID}`} />
+                </video>
+            )
+        } else if (previewFile.FileType.includes("audio") || previewFile.Filename.endsWith(".mp3") || previewFile.Filename.endsWith(".wav") || previewFile.Filename.endsWith(".m4a")) {
+            mediaElement = (
+                <audio controls className="file-preview-audio">
+                    <source src={`http://127.0.0.1:8000/api/download/${previewFile.FileID}`} />
+                </audio>
+            )
+        }
+
+        previewBoxElement = (
+            <div className="preview-box">
+                <hr />
+                <h4>Просмотр: {previewFile.Filename}</h4>
+                {mediaElement}
+                <br />
+                <button onClick={() => setPreviewFile(null)}>✘ Закрыть предпросмотр</button>
+            </div>
+        )
+    }
+
     return (
         <div className="file-manager-container">
-            <h3>📂 Мой Диск</h3>
+            <h3>Мой Диск</h3>
 
             <div className="upload-section">
                 <label>Загрузить файл: </label>
                 <input type="file" onChange={handleFileUpload} />
-                {uploadStatus ? <p>{uploadStatus}</p> : null}
+                {uploadStatusElement}
             </div>
 
             <hr />
@@ -135,105 +258,15 @@ export default function FileManager({ SetScreen }) {
                     </tr>
                 </thead>
                 <tbody>
-                    {filteredFiles.length === 0 ? (
-                        <tr>
-                            <td colSpan="4">Файлы не найдены</td>
-                        </tr>
-                    ) : (
-                        filteredFiles.map(file => (
-                            <tr key={file.FileID}>
-                                <td>{file.Filename}</td>
-                                <td>{file.FileType}</td>
-                                <td>{file.FileSize}</td>
-                                <td>
-                                    <button onClick={() => openPreview(file)}>👁️ Предпросмотр</button>
-                                    <a href={`http://127.0.0.1:8000/api/download/${file.FileID}`} download>
-                                        <button>💾 Скачать</button>
-                                    </a>
-                                    <button onClick={() => openShareBox(file.FileID)}>🔗 Поделиться</button>
-                                    <button onClick={() => moveToTrash(file.FileID)} className="danger-button">🗑️ В корзину</button>
-                                </td>
-                            </tr>
-                        ))
-                    )}
+                    {tableRowsElement}
                 </tbody>
             </table>
 
             {/* Окно генерации сгорающей ссылки */}
-            {shareFileId ? (
-                <div className="preview-box">
-                    <hr />
-                    <h4>🔗 Публичный доступ (Сгорающая ссылка)</h4>
-                    
-                    <label>Срок жизни ссылки: </label>
-                    <select value={shareHours} onChange={(e) => setShareHours(Number(e.target.value))}>
-                        <option value={2}>2 часа</option>
-                        <option value={5}>5 часов</option>
-                        <option value={24}>24 часа (1 день)</option>
-                        <option value={72}>72 часа (3 дня)</option>
-                        <option value={0}>Не удалять (вечная)</option>
-                    </select>
-                    
-                    <br /><br />
-                    <button onClick={() => generateShareLink(shareFileId)}>Сгенерировать ссылку</button>
-
-                    {generatedLink ? (
-                        <div>
-                            <br />
-                            <p><b>Готовая ссылка для скачивания:</b></p>
-                            <input type="text" value={generatedLink} readOnly />
-                        </div>
-                    ) : null}
-
-                    <br /><br />
-                    <button onClick={() => setShareFileId(null)}>✘ Закрыть</button>
-                </div>
-            ) : null}
+            {shareBoxElement}
 
             {/* Окно предпросмотра выбранного файла */}
-            {previewFile ? (
-                <div className="preview-box">
-                    <hr />
-                    <h4>Просмотр: {previewFile.Filename}</h4>
-
-                    {previewFile.FileType.includes("image") ? (
-                        <img 
-                            src={`http://127.0.0.1:8000/api/download/${previewFile.FileID}`} 
-                            alt="Превью" 
-                            className="file-preview-img" 
-                        />
-                    ) : null}
-
-                    {previewFile.FileType.includes("text") ? (
-                        <textarea value={previewTextContent} readOnly rows={8} className="file-text-area" />
-                    ) : null}
-
-                    {previewFile.FileType.includes("pdf") || previewFile.Filename.endsWith(".pdf") ? (
-                        <div className="pdf-preview-wrapper">
-                            <iframe 
-                                src={`http://127.0.0.1:8000/api/download/${previewFile.FileID}#toolbar=0`} 
-                                title="PDF Preview" 
-                                className="file-preview-pdf"
-                            />
-                        </div>
-                    ) : null}
-
-                    {previewFile.FileType.includes("video") || previewFile.Filename.endsWith(".mp4") || previewFile.Filename.endsWith(".avi") ? (
-                        <video controls className="file-preview-video">
-                            <source src={`http://127.0.0.1:8000/api/download/${previewFile.FileID}`} />
-                        </video>
-                    ) : null}
-
-                    {previewFile.FileType.includes("audio") || previewFile.Filename.endsWith(".mp3") || previewFile.Filename.endsWith(".wav") || previewFile.Filename.endsWith(".m4a") ? (
-                        <audio controls className="file-preview-audio">
-                            <source src={`http://127.0.0.1:8000/api/download/${previewFile.FileID}`} />
-                        </audio>
-                    ) : null}
-
-                    <br />
-                    <button onClick={() => setPreviewFile(null)}>✘ Закрыть предпросмотр</button>
-                </div>
-            ) : null}
+            {previewBoxElement}
         </div>
     )
 }

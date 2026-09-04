@@ -29,13 +29,41 @@ export default function TrashBin({ SetScreen }) {
             .then(() => loadTrash())
     }
 
+    // Подготовка кнопки очистки корзины
+    let emptyTrashButtonElement = null
+    if (trashFiles.length > 0) {
+        emptyTrashButtonElement = (
+            <button onClick={emptyTrash} className="danger-button">✘ Очистить корзину</button>
+        )
+    }
+
+    // Подготовка строк таблицы
+    let trashRowsElement = null
+    if (trashFiles.length === 0) {
+        trashRowsElement = (
+            <tr>
+                <td colSpan="4">Корзина пуста</td>
+            </tr>
+        )
+    } else {
+        trashRowsElement = trashFiles.map(file => (
+            <tr key={file.FileID}>
+                <td>{file.Filename}</td>
+                <td>{file.FileSize}</td>
+                <td>{file.UploadDate}</td>
+                <td>
+                    <button onClick={() => restoreFile(file.FileID)}>Восстановить</button>
+                    <button onClick={() => deletePermanently(file.FileID)} className="danger-button">✘ Удалить окончательно</button>
+                </td>
+            </tr>
+        ))
+    }
+
     return (
         <div className="trash-container">
             <h3>♻ Корзина</h3>
 
-            {trashFiles.length > 0 ? (
-                <button onClick={emptyTrash} className="danger-button">✘ Очистить корзину</button>
-            ) : null}
+            {emptyTrashButtonElement}
 
             <table className="storage-table">
                 <thead>
@@ -47,28 +75,12 @@ export default function TrashBin({ SetScreen }) {
                     </tr>
                 </thead>
                 <tbody>
-                    {trashFiles.length === 0 ? (
-                        <tr>
-                            <td colSpan="4">Корзина пуста</td>
-                        </tr>
-                    ) : (
-                        trashFiles.map(file => (
-                            <tr key={file.FileID}>
-                                <td>{file.Filename}</td>
-                                <td>{file.FileSize}</td>
-                                <td>{file.UploadDate}</td>
-                                <td>
-                                    <button onClick={() => restoreFile(file.FileID)}>🔄 Восстановить</button>
-                                    <button onClick={() => deletePermanently(file.FileID)} className="danger-button">✘ Удалить окончательно</button>
-                                </td>
-                            </tr>
-                        ))
-                    )}
+                    {trashRowsElement}
                 </tbody>
             </table>
 
             <br />
-            <button onClick={() => SetScreen("FileManager")}>⬅️ Назад на Диск</button>
+            <button onClick={() => SetScreen("FileManager")}>⬅ Назад на Диск</button>
         </div>
     )
 }

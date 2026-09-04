@@ -1,6 +1,6 @@
 import { useState } from "react"
 
-export default function Options({ SetScreen, themes, switchTheme }){
+export default function Options({ SetScreen, themes, switchTheme }) {
 
     const [dbStat, setDbStat] = useState("Не проверено")
     const [logs, setLogs] = useState([])
@@ -31,9 +31,48 @@ export default function Options({ SetScreen, themes, switchTheme }){
         .catch(err => console.log("Ошибка загрузки логов:", err))
     }
 
+    // Вынос логики строк таблицы логов
+    let logsRowsElement = null
+    if (logs.length === 0) {
+        logsRowsElement = (
+            <tr>
+                <td colSpan="4">Записей в логах пока нет</td>
+            </tr>
+        )
+    } else {
+        logsRowsElement = logs.map(log => (
+            <tr key={log.LogId}>
+                <td>{log.EventType}</td>
+                <td>{log.FileName}</td>
+                <td>{log.ScanResult}</td>
+                <td>{log.Timestamp}</td>
+            </tr>
+        ))
+    }
+
+    // Вынос логики отображения таблицы логов
+    let logsTableElement = null
+    if (showLogs === true) {
+        logsTableElement = (
+            <table className="storage-table">
+                <thead>
+                    <tr>
+                        <th>Событие</th>
+                        <th>Имя файла</th>
+                        <th>Результат сканирования</th>
+                        <th>Дата</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {logsRowsElement}
+                </tbody>
+            </table>
+        )
+    }
+
     return (
         <div className="options-window">
-           
+            
             <div className="options-header">
                 <button onClick={() => SetScreen("Menu")}>◁ Меню</button>
                 <h2>Настройки системы «ТОП»</h2>
@@ -62,36 +101,9 @@ export default function Options({ SetScreen, themes, switchTheme }){
             {/* Журнал безопасности VirusTotal */}
             <div className="options-section">
                 <h3>Журнал безопасности (VirusTotal)</h3>
-                <button onClick={loadSecurityLogs}>🛡️ Показать журнал проверок</button>
+                <button onClick={loadSecurityLogs}> Показать журнал проверок</button>
                 
-                {showLogs ? (
-                    <table className="storage-table">
-                        <thead>
-                            <tr>
-                                <th>Событие</th>
-                                <th>Имя файла</th>
-                                <th>Результат сканирования</th>
-                                <th>Дата</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {logs.length === 0 ? (
-                                <tr>
-                                    <td colSpan="4">Записей в логах пока нет</td>
-                                </tr>
-                            ) : (
-                                logs.map(log => (
-                                    <tr key={log.LogId}>
-                                        <td>{log.EventType}</td>
-                                        <td>{log.FileName}</td>
-                                        <td>{log.ScanResult}</td>
-                                        <td>{log.Timestamp}</td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                ) : null}
+                {logsTableElement}
             </div>
 
             <hr />

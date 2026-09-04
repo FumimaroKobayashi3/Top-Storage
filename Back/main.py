@@ -169,9 +169,11 @@ async def uploadFile(file: UploadFile = File(...)):
     file_bytes = await file.read()
     file_size = len(file_bytes)
     file_hash = hashlib.sha256(file_bytes).hexdigest()
-
-    if file.content_type:
-        content_type = file.content_type
+    
+    if file.filename.lower().endswith(".pdf"):
+        content_type = "application/pdf"
+    elif file.content_type:
+         content_type = file.content_type
     else:
         content_type = "application/octet-stream"
 
@@ -250,10 +252,25 @@ def downloadFile(file_id: int):
     connection.close()
 
     if row is not None:
-        clean_filename = Path(row[1]).name
+        filename = row[0]
+        raw_filepath = row[1]
+        media_type = row[2]
+
+        clean_filename = Path(raw_filepath).name
         real_path = UPLOAD_DIR / clean_filename
+
         if real_path.exists():
-            return FileResponse(path=str(real_path), filename=row[0], media_type=row[2])
+            # Защита: если файл PDF, принудительно ставим правильный MIME-тип
+            if filename.lower().endswith('.pdf'):
+                media_type = 'application/pdf'
+
+            # content_disposition_type="inline" разрешает просмотр внутри iframe браузера
+            return FileResponse(
+                path=str(real_path), 
+                media_type=media_type, 
+                content_disposition_type="inline"
+            )
+
         raise HTTPException(status_code=404, detail="Файл на диске не найден")
 
     raise HTTPException(status_code=404, detail="Запись о файле не найдена")

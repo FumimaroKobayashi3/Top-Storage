@@ -1,6 +1,6 @@
 import { useState } from "react"
 import SideBar from "./components/SideBar.jsx"
-import MainMen from "./components//MainMen.jsx"
+import MainMen from "./components/MainMen.jsx"
 import FileManager from "./components/FileManager.jsx"
 import TrashBin from "./components/TrashBin.jsx"
 import Options from "./components/Options.jsx"
