@@ -1,14 +1,25 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import RedirectResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from dotenv import dotenv_values
 import requests
 import hashlib
 import sqlite3
-import InitDB
 import uuid
 import time
+import sys
+
+# Добавляем папку скрипта в пути поиска Python, чтобы InitDB импортировался везде гарантированно
+CURRENT_DIR = Path(__file__).resolve().parent
+if str(CURRENT_DIR) not in sys.path:
+    sys.path.append(str(CURRENT_DIR))
+
+try:
+    import InitDB
+except ModuleNotFoundError:
+    from Back import InitDB
 
 # Чтение ключа из .env без модуля os
 config = dotenv_values(".env")
@@ -31,10 +42,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-@app.get("/")
-def mainpageServing():
-    return RedirectResponse(url='http://localhost:5173')
 
 # Статистика диска
 @app.get("/api/stats")
@@ -389,3 +396,13 @@ def downloadPubFile(token: str):
 
     connection.close()
     raise HTTPException(status_code=404, detail="Ссылка недействительна")
+
+
+#МОНТИРОВАНИЕ СОБРАННОГО REACT ФРОНТЕНД
+# Ищем скомпилированный фронтенд (сначала для Docker/Amvera, затем локальный вариант)
+frontend_dist = Path("/app/Front/dist")
+if not frontend_dist.exists():
+    frontend_dist = CURRENT_DIR.parent / "Front" / "dist"
+
+if frontend_dist.exists():
+    app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="frontend")
