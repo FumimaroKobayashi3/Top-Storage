@@ -7,7 +7,7 @@ export default function Options({ SetScreen, themes, switchTheme }) {
     const [showLogs, setShowLogs] = useState(false)
 
     function checkStatus(){
-        fetch('http://127.0.0.1:8000/api/stats')
+        fetch('/api/stats')
         .then(res => {
             if (res.ok) {
                 setDbStat('Онлайн (FastAPI работает)')
@@ -22,7 +22,7 @@ export default function Options({ SetScreen, themes, switchTheme }) {
 
     // Загрузка логов из бэкенда
     function loadSecurityLogs() {
-        fetch('http://127.0.0.1:8000/api/logs')
+        fetch('/api/logs')
         .then(res => res.json())
         .then(data => {
             setLogs(data)

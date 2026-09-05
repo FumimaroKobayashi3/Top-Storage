@@ -4,7 +4,7 @@ export default function TrashBin({ SetScreen }) {
     const [trashFiles, setTrashFiles] = useState([])
 
     function loadTrash() {
-        fetch('http://127.0.0.1:8000/api/trash')
+        fetch('/api/trash')
             .then(res => res.json())
             .then(data => setTrashFiles(data))
             .catch(err => console.log("Ошибка загрузки корзины:", err))
@@ -15,17 +15,17 @@ export default function TrashBin({ SetScreen }) {
     }, [])
 
     function restoreFile(id) {
-        fetch(`http://127.0.0.1:8000/api/trash/restore/${id}`, { method: 'POST' })
+        fetch(`/api/trash/restore/${id}`, { method: 'POST' })
             .then(() => loadTrash())
     }
 
     function deletePermanently(id) {
-        fetch(`http://127.0.0.1:8000/api/files/${id}`, { method: 'DELETE' })
+        fetch(`/api/files/${id}`, { method: 'DELETE' })
             .then(() => loadTrash())
     }
 
     function emptyTrash() {
-        fetch('http://127.0.0.1:8000/api/trash/empty', { method: 'DELETE' })
+        fetch('/api/trash/empty', { method: 'DELETE' })
             .then(() => loadTrash())
     }
 

@@ -358,7 +358,7 @@ def createLink(file_id: int, hours: int = 72):
     cursor.execute("UPDATE FILESDB SET IsPublic = 1, PublicToken = ? WHERE FileID = ?", (public_token, file_id))
     connection.commit()
     connection.close()
-    return {"status": "ok", "public_url": f"http://127.0.0.1:8000/api/public/download/{public_token}"}
+    return {"status": "ok", "public_url": f"/api/public/download/{public_token}"}
 
 # Скачивание по сгорающей ссылке
 @app.get("/api/public/download/{token}")

@@ -9,7 +9,7 @@ export default function MainMen({ SetScreen }) {
     })
 
     function loadStats() {
-        fetch('http://127.0.0.1:8000/api/stats')
+        fetch('/api/stats')
             .then(res => res.json())
             .then(data => setStats(data))
             .catch(err => console.log("Косяк при фетче статистики:", err))

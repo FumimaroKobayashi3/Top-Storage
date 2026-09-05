@@ -13,7 +13,7 @@ export default function FileManager({ SetScreen }) {
     const [generatedLink, setGeneratedLink] = useState("")
 
     function loadFiles() {
-        fetch('http://127.0.0.1:8000/api/files')
+        fetch('/api/files')
             .then(res => res.json())
             .then(data => setFilesList(data))
             .catch(err => console.log("Ошибка загрузки файлов:", err))
@@ -30,7 +30,7 @@ export default function FileManager({ SetScreen }) {
             const formData = new FormData()
             formData.append("file", file)
 
-            fetch('http://127.0.0.1:8000/api/upload', {
+            fetch('/api/upload', {
                 method: 'POST',
                 body: formData
             })
@@ -44,7 +44,7 @@ export default function FileManager({ SetScreen }) {
     }
 
     function moveToTrash(id) {
-        fetch(`http://127.0.0.1:8000/api/trash/move/${id}`, { method: 'POST' })
+        fetch(`/api/trash/move/${id}`, { method: 'POST' })
             .then(() => {
                 setPreviewFile(null)
                 setShareFileId(null)
@@ -57,14 +57,14 @@ export default function FileManager({ SetScreen }) {
         setPreviewTextContent("")
 
         if (file.FileType.includes("text")) {
-            fetch(`http://127.0.0.1:8000/api/download/${file.FileID}`)
+            fetch(`/api/download/${file.FileID}`)
                 .then(res => res.text())
                 .then(txt => setPreviewTextContent(txt))
         }
     }
 
     function generateShareLink(fileId) {
-        fetch(`http://127.0.0.1:8000/api/files/share/${fileId}?hours=${shareHours}`, {
+        fetch(`/api/files/share/${fileId}?hours=${shareHours}`, {
             method: 'POST'
         })
         .then(res => res.json())
@@ -124,7 +124,7 @@ export default function FileManager({ SetScreen }) {
                 <td>{file.FileSize}</td>
                 <td>
                     <button onClick={() => openPreview(file)}>Предпросмотр</button>
-                    <a href={`http://127.0.0.1:8000/api/download/${file.FileID}`} download>
+                    <a href={`/api/download/${file.FileID}`} download>
                         <button>Скачать</button>
                     </a>
                     <button onClick={() => openShareBox(file.FileID)}>Поделиться</button>
@@ -181,7 +181,7 @@ export default function FileManager({ SetScreen }) {
         if (previewFile.FileType.includes("image")) {
             mediaElement = (
                 <img 
-                    src={`http://127.0.0.1:8000/api/download/${previewFile.FileID}`} 
+                    src={`/api/download/${previewFile.FileID}`} 
                     alt="Превью" 
                     className="file-preview-img" 
                 />
@@ -194,7 +194,7 @@ export default function FileManager({ SetScreen }) {
             mediaElement = (
                 <div className="pdf-preview-wrapper">
                     <iframe 
-                        src={`http://127.0.0.1:8000/api/download/${previewFile.FileID}#toolbar=0`} 
+                        src={`/api/download/${previewFile.FileID}#toolbar=0`} 
                         title="PDF Preview" 
                         className="file-preview-pdf"
                     />
@@ -203,13 +203,13 @@ export default function FileManager({ SetScreen }) {
         } else if (previewFile.FileType.includes("video") || previewFile.Filename.endsWith(".mp4") || previewFile.Filename.endsWith(".avi")) {
             mediaElement = (
                 <video controls className="file-preview-video">
-                    <source src={`http://127.0.0.1:8000/api/download/${previewFile.FileID}`} />
+                    <source src={`/api/download/${previewFile.FileID}`} />
                 </video>
             )
         } else if (previewFile.FileType.includes("audio") || previewFile.Filename.endsWith(".mp3") || previewFile.Filename.endsWith(".wav") || previewFile.Filename.endsWith(".m4a")) {
             mediaElement = (
                 <audio controls className="file-preview-audio">
-                    <source src={`http://127.0.0.1:8000/api/download/${previewFile.FileID}`} />
+                    <source src={`/api/download/${previewFile.FileID}`} />
                 </audio>
             )
         }
