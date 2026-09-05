@@ -172,34 +172,41 @@ def emptyTrash():
 
 # Загрузка файлов
 @app.post("/api/upload")
-async def uploadFile(file: UploadFile = File(...)):
-    file_bytes = await file.read()
-    file_size = len(file_bytes)
-    file_hash = hashlib.sha256(file_bytes).hexdigest()
-    
-    if file.filename.lower().endswith(".pdf"):
+def uploadFile(file: UploadFile = File(...)):
+    temp_path = UPLOAD_DIR / f"temp_{uuid.uuid4().hex}"
+    sha256_hash = hashlib.sha256()
+    file_size = 0
+
+    try:
+        # Чтение из файлового объекта напрямую в пуле потоков
+        with open(temp_path, "wb") as buffer:
+            while chunk := file.file.read(1024 * 1024):  # Куски по 1 МБ
+                file_size += len(chunk)
+                sha256_hash.update(chunk)
+                buffer.write(chunk)
+    except Exception as e:
+        if temp_path.exists():
+            temp_path.unlink()
+        print(f"Ошибка при записи файла: {e}")
+        return {"status": "error", "message": "Ошибка сохранения файла на диск"}
+
+    file_hash = sha256_hash.hexdigest()
+
+    # Определение формата
+    fn_lower = file.filename.lower()
+    if fn_lower.endswith(".pdf"):
         content_type = "application/pdf"
+    elif fn_lower.endswith(".mp4"):
+        content_type = "video/mp4"
+    elif fn_lower.endswith(".rar"):
+        content_type = "application/x-rar-compressed"
     elif file.content_type:
-         content_type = file.content_type
+        content_type = file.content_type
     else:
         content_type = "application/octet-stream"
 
-    connection = sqlite3.connect('Top.db')
+    connection = sqlite3.connect(DB_PATH)
     cursor = connection.cursor()
-
-    cursor.execute("SELECT SUM(FileSize) FROM FILESDB WHERE IsTrash = 0")
-    row = cursor.fetchone()
-
-    current_used = 0
-    if row is not None:
-        if row[0] is not None:
-            current_used = row[0]
-
-    limit_bytes = 42949672960
-
-    if current_used + file_size > limit_bytes:
-        connection.close()
-        return {"status": "error", "message": "Превышен лимит хранилища 40 ГБ!"}
 
     # VirusTotal API
     headers = {"x-apikey": VT_KEY}
@@ -217,10 +224,13 @@ async def uploadFile(file: UploadFile = File(...)):
             scan_result_text = f"Обнаружено угроз: {ant_count} из {total_ant}"
         elif vt_response.status_code == 404:
             scan_result_text = "Файл чист (хэш в базе вредоносов не найден)"
-    except Exception:
+    except Exception as e:
+        print(f"Ошибка проверки VirusTotal: {e}")
         scan_result_text = "Ошибка связи с сервером проверки угроз (таймаут)"
 
     if ant_count >= 20:
+        if temp_path.exists():
+            temp_path.unlink()
         cursor.execute("""
             INSERT INTO SECURITYDB (EventType, Details, FileName, FileHash, ScanResult, AntVirCounter, TotalAntViruses)
             VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -229,16 +239,19 @@ async def uploadFile(file: UploadFile = File(...)):
         connection.close()
         return {"status": "blocked", "message": f"Файл заблокирован! Обнаружено угроз: {ant_count}"}
 
-    unique_filename = f"{file_hash[:8]}_{file.filename}"
-    file_path = UPLOAD_DIR / unique_filename
+    final_filename = f"{file_hash[:8]}_{file.filename}"
+    final_path = UPLOAD_DIR / final_filename
 
-    with open(file_path, "wb") as buffer:
-        buffer.write(file_bytes)
+    # Если такой файл уже существует, удаляем временный
+    if final_path.exists():
+        temp_path.unlink()
+    else:
+        temp_path.rename(final_path)
 
     cursor.execute("""
         INSERT INTO FILESDB (Filename, Filepath, FileSize, FileType, FileHash, IsTrash)
         VALUES (?, ?, ?, ?, ?, 0)
-    """, (file.filename, str(file_path), file_size, content_type, file_hash))
+    """, (file.filename, str(final_path), file_size, content_type, file_hash))
 
     cursor.execute("""
         INSERT INTO SECURITYDB (EventType, Details, FileName, FileHash, ScanResult, AntVirCounter, TotalAntViruses)
@@ -247,7 +260,7 @@ async def uploadFile(file: UploadFile = File(...)):
 
     connection.commit()
     connection.close()
-    return {"status": "ok", "message": "Файл успешно загружен в хранилище!"}
+    return {"status": "ok", "message": "Файл успешно загружен!"}
 
 # Скачивание файла по ID
 @app.get("/api/download/{file_id}")
