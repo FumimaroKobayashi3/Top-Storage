@@ -26,7 +26,7 @@ export default function FileManager({ SetScreen }) {
     function handleFileUpload(e) {
         const file = e.target.files[0]
         if (file) {
-            setUploadStatus("Проверка на вирусы и загрузка...")
+            setUploadStatus("Загрузка и сохранение файла...")
             const formData = new FormData()
             formData.append("file", file)
 
@@ -92,9 +92,6 @@ export default function FileManager({ SetScreen }) {
         }
         if (selectedCategory === "TEXT") {
             return file.FileType.includes("text")
-        }
-        if (selectedCategory === "VIDEO") {
-            return file.FileType.includes("video") || file.Filename.endsWith(".mp4") || file.Filename.endsWith(".avi")
         }
         if (selectedCategory === "AUDIO") {
             return file.FileType.includes("audio") || file.Filename.endsWith(".mp3") || file.Filename.endsWith(".wav") || file.Filename.endsWith(".m4a")
@@ -244,7 +241,6 @@ export default function FileManager({ SetScreen }) {
                 <button onClick={() => setSelectedCategory("IMAGES")}>Изображения</button>
                 <button onClick={() => setSelectedCategory("DOCS")}>Документы PDF</button>
                 <button onClick={() => setSelectedCategory("TEXT")}>Текстовые</button>
-                <button onClick={() => setSelectedCategory("VIDEO")}>Видео (MP4/AVI)</button>
                 <button onClick={() => setSelectedCategory("AUDIO")}>Аудио (MP3/WAV/M4A)</button>
             </div>
 

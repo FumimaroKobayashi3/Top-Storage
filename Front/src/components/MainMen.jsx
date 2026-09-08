@@ -3,9 +3,9 @@ import { useEffect, useState } from "react"
 export default function MainMen({ SetScreen }) {
     const [stats, setStats] = useState({
         used_bytes: 0,
-        limit_bytes: 42949672960,
+        limit_bytes: 5368709120, // 5 ГБ по дефолту
         total_files: 0,
-        blocked_viruses: 0
+        trash_files: 0
     })
 
     function loadStats() {
@@ -21,7 +21,7 @@ export default function MainMen({ SetScreen }) {
 
     // Перевод байтов в гигабайты
     const usedBytes = stats.used_bytes || 0
-    const limitBytes = stats.limit_bytes || 42949672960
+    const limitBytes = stats.limit_bytes || 5368709120
 
     const usedGB = (usedBytes / 1073741824).toFixed(2)
     const limitGB = (limitBytes / 1073741824).toFixed(0)
@@ -29,7 +29,7 @@ export default function MainMen({ SetScreen }) {
     return (
         <div className="main-menu-container">
             <h2>Дашборд Хранилища «ТОП»</h2>
-            <p>Система защиты и контроля файлового пространства</p>
+            <p>Панель управления файловым пространством</p>
 
             <hr />
 
@@ -47,9 +47,9 @@ export default function MainMen({ SetScreen }) {
                 </div>
 
                 <div className="stat-card">
-                    <h4>Заблокировано угроз</h4>
-                    <p className="badge-blocked">{stats.blocked_viruses || 0} угроз</p>
-                    <button onClick={() => SetScreen("TrashBin")}>Проверить корзину</button>
+                    <h4>Файлов в корзине</h4>
+                    <p className="badge-blocked">{stats.trash_files || 0} шт.</p>
+                    <button onClick={() => SetScreen("TrashBin")}>Открыть корзину</button>
                 </div>
             </div>
         </div>

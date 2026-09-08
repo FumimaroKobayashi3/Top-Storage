@@ -1,7 +1,7 @@
 import sqlite3
 
-def init_db():
-    connection = sqlite3.connect('Top.db')
+def init_db(db_path='Top.db'):
+    connection = sqlite3.connect(db_path)
     cursor = connection.cursor()
 
     try:
@@ -23,20 +23,20 @@ def init_db():
             PublicToken TEXT
         )''')
 
-        # Настройки хранилища (40 ГБ)
+        # Настройки хранилища (Реальный лимит Amvera Standard: 5 ГБ)
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS PETSETTINGSDB(
             SettingID INTEGER PRIMARY KEY AUTOINCREMENT,
             Theme TEXT NOT NULL DEFAULT 'Dark',
-            StorageLimitBytes INTEGER DEFAULT 42949672960
+            StorageLimitBytes INTEGER DEFAULT 5368709120
         )''')
         
         cursor.execute('''
         INSERT OR IGNORE INTO PETSETTINGSDB (SettingID, Theme, StorageLimitBytes)
-        VALUES (1, 'Dark', 42949672960)
+        VALUES (1, 'Dark', 5368709120)
         ''')
 
-        # Таблица логов безопасности VirusTotal
+        # Таблица логов операций
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS SECURITYDB(
             LogId INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -51,7 +51,7 @@ def init_db():
         )''')
 
         connection.commit()
-        print("База данных 'Top.db' успешно инициализирована")
+        print(f"База данных '{db_path}' успешно инициализирована")
     except sqlite3.Error as e:
         print(f"Ошибка при работе с SQLite: {e}")
         connection.rollback()
