@@ -7,7 +7,12 @@ import hashlib
 import sqlite3
 import uuid
 import time
-from Back import InitDB
+
+
+try:
+    import InitDB
+except ImportError:
+    from Back import InitDB
 
 # Реальный лимит диска для Amvera Standard: 5 ГБ
 STORAGE_LIMIT_5GB = 5368709120

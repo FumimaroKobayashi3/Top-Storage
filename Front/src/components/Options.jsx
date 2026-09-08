@@ -1,34 +1,33 @@
 import { useState } from "react"
 
 export default function Options({ SetScreen, themes, switchTheme }) {
-
     const [dbStat, setDbStat] = useState("Не проверено")
     const [logs, setLogs] = useState([])
     const [showLogs, setShowLogs] = useState(false)
 
-    function checkStatus(){
+    function checkStatus() {
         fetch('/api/stats')
-        .then(res => {
-            if (res.ok) {
-                setDbStat('Онлайн (FastAPI работает)')
-            } else {
-                setDbStat('Ошибка сервера')
-            }
-        })
-        .catch(() => {
-            setDbStat('Ошибка: оффлайн')
-        })
+            .then(res => {
+                if (res.ok) {
+                    setDbStat('Онлайн (FastAPI работает)')
+                } else {
+                    setDbStat('Ошибка сервера')
+                }
+            })
+            .catch(() => {
+                setDbStat('Ошибка: оффлайн')
+            })
     }
 
     // Загрузка логов из бэкенда
-    function loadSecurityLogs() {
+    function loadSystemLogs() {
         fetch('/api/logs')
-        .then(res => res.json())
-        .then(data => {
-            setLogs(data)
-            setShowLogs(true)
-        })
-        .catch(err => console.log("Ошибка загрузки логов:", err))
+            .then(res => res.json())
+            .then(data => {
+                setLogs(data)
+                setShowLogs(true)
+            })
+            .catch(err => console.log("Ошибка загрузки логов:", err))
     }
 
     // Вынос логики строк таблицы логов
@@ -50,7 +49,7 @@ export default function Options({ SetScreen, themes, switchTheme }) {
         ))
     }
 
-    // Вынос логики отображения таблицы логов
+    // Отображение таблицы логов
     let logsTableElement = null
     if (showLogs === true) {
         logsTableElement = (
@@ -59,7 +58,7 @@ export default function Options({ SetScreen, themes, switchTheme }) {
                     <tr>
                         <th>Событие</th>
                         <th>Имя файла</th>
-                        <th>Результат сканирования</th>
+                        <th>Статус операции</th>
                         <th>Дата</th>
                     </tr>
                 </thead>
@@ -72,7 +71,6 @@ export default function Options({ SetScreen, themes, switchTheme }) {
 
     return (
         <div className="options-window">
-            
             <div className="options-header">
                 <button onClick={() => SetScreen("Menu")}>◁ Меню</button>
                 <h2>Настройки системы «ТОП»</h2>
@@ -98,11 +96,10 @@ export default function Options({ SetScreen, themes, switchTheme }) {
 
             <hr />
 
-            {/* Журнал безопасности VirusTotal */}
+            {/* Системный журнал операций */}
             <div className="options-section">
-                <h3>Журнал безопасности (VirusTotal)</h3>
-                <button onClick={loadSecurityLogs}> Показать журнал проверок</button>
-                
+                <h3>Системный журнал событий</h3>
+                <button onClick={loadSystemLogs}>Показать журнал событий</button>
                 {logsTableElement}
             </div>
 
@@ -110,11 +107,10 @@ export default function Options({ SetScreen, themes, switchTheme }) {
 
             {/* Информационный блок */}
             <div className="options-section">
-                <h3>Безопасность и лимиты</h3>
-                <p>Лимит диска: 40 ГБ (42 949 672 960 байт)</p>
-                <p>Фильтрация: VirusTotal API (Порог блокировки: ≥20 угроз)</p>
+                <h3>Параметры окружения</h3>
+                <p>Лимит диска: 5 ГБ (5 368 709 120 байт) [Amvera Standard]</p>
+                <p>Контроль хранилища: встроенная квота и хэширование SHA-256</p>
             </div>
-
         </div>
     )
 }
