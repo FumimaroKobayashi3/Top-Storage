@@ -108,8 +108,7 @@ export default function Options({ SetScreen, themes, switchTheme }) {
             {/* Информационный блок */}
             <div className="options-section">
                 <h3>Параметры окружения</h3>
-                <p>Лимит диска: 5 ГБ (5 368 709 120 байт) [Amvera Standard]</p>
-                <p>Контроль хранилища: встроенная квота и хэширование SHA-256</p>
+                <p>Лимит диска: 5 ГБ</p>
             </div>
         </div>
     )

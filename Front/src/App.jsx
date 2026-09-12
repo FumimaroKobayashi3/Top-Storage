@@ -7,7 +7,6 @@ import Options from "./components/Options.jsx"
 import "./components/themes.css"
 
 export default function App() {
-    // Состояние текущего экрана 
     const [screen, setScreen] = useState("Menu")
 
     // Состояние темы (по умолчанию Темная)
@@ -44,10 +43,8 @@ export default function App() {
             </header>
 
             <div className="app-layout">
-                {/* Боковое меню навигации */}
                 <SideBar SetScreen={setScreen} />
 
-                {/* Основная рабочая область */}
                 <main className="main-content">
                     {renderScreen()}
                 </main>

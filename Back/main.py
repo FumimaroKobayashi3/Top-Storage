@@ -8,26 +8,24 @@ import sqlite3
 import uuid
 import time
 
-
+#здесь блин костыль ибо амвера не умеет читать скрипты и ей нужен костыль для инитдб
 try:
     import InitDB
 except ImportError:
     from Back import InitDB
 
-# Реальный лимит диска для Amvera Standard: 5 ГБ
 STORAGE_LIMIT_5GB = 5368709120
 
-# Словарь статусов операций
 STATUS_MESSAGES = {
-    "SUCCESS": "Файл успешно выложен",
-    "STORAGE_FULL": "Не получилось: диск переполнен, удалите старье",
-    "PAYLOAD_TOO_LARGE": "Занесите ещё 3к и будет вам на 6 гб ОЗУ и 2 ядра цпу (лимит файла превышен)",
-    "SAVE_ERROR": "Не получилось сохранить файл на диск",
-    "TRASH_MOVED": "Файл отправлен в корзину",
-    "TRASH_RESTORED": "Файл возвращен из корзины"
+    "SUCCESS": " Файл был выложен успешно ",
+    "STORAGE_FULL": "Диск переполнен",
+    "PAYLOAD_TOO_LARGE": "Занесите ещё 3к и будет вам на 6 гб ОЗУ и 2 ядра цпу )",
+    "SAVE_ERROR": "Не получилось сохранить на диск",
+    "TRASH_MOVED": "файл отправлен в корзину",
+
 }
 
-# Пути к данным: на сервере пишем в постоянный раздел /data, локально — рядом со скриптом
+# Пути к данным надо для амверы и локалки
 if Path("/data").exists():
     DB_PATH = Path("/data/Top.db")
     UPLOAD_DIR = Path("/data/uploads")
@@ -38,10 +36,10 @@ else:
 if not UPLOAD_DIR.exists():
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-# Инициализация структуры БД
+
 InitDB.init_db(DB_PATH)
 
-# Проверка колонок под публичные ссылки
+
 def check_db_schema():
     connection = sqlite3.connect(DB_PATH, timeout=30)
     cursor = connection.cursor()
@@ -70,7 +68,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Функция для логирования операций в базу
 def write_system_log(event_type: str, details: str, filename: str, file_hash: str, scan_result: str):
     connection = sqlite3.connect(DB_PATH, timeout=30)
     cursor = connection.cursor()
@@ -82,17 +79,19 @@ def write_system_log(event_type: str, details: str, filename: str, file_hash: st
     connection.commit()
     connection.close()
 
-# Статистика занятого места
+# Статистика занятого места включая корзину
 @app.get("/api/stats")
 def getStorageStats():
     connection = sqlite3.connect(DB_PATH, timeout=30)
     cursor = connection.cursor()
 
-    # COALESCE вернёт 0 вместо None, если файлов ещё нет (никаких лишних if)
-    cursor.execute("SELECT COALESCE(SUM(FileSize), 0), COUNT(*) FROM FILESDB WHERE IsTrash = 0")
-    used_bytes, total_files = cursor.fetchone()
+    
+    cursor.execute("SELECT COALESCE(SUM(FileSize), 0) FROM FILESDB")
+    used_bytes = cursor.fetchone()[0]
 
-    # Считаем файлы в корзине для третьей карточки
+    cursor.execute("SELECT COUNT(*) FROM FILESDB WHERE IsTrash = 0")
+    total_files = cursor.fetchone()[0]
+
     cursor.execute("SELECT COUNT(*) FROM FILESDB WHERE IsTrash = 1")
     trash_files = cursor.fetchone()[0]
 
@@ -136,11 +135,12 @@ def getFilesList():
     return fetch_files_from_db(is_trash=0)
 
 # Список файлов в корзине
+# def trash state это функция управление стэйтом
+# 0 это не в корзине 1 это в корзине
 @app.get("/api/trash")
 def getTrashFiles():
     return fetch_files_from_db(is_trash=1)
 
-# Управление состоянием корзины (0 - активен, 1 - в корзине)
 def set_trash_state(file_id: int, state: int):
     connection = sqlite3.connect(DB_PATH, timeout=30)
     cursor = connection.cursor()
@@ -156,9 +156,9 @@ def moveToTrash(file_id: int):
 @app.post("/api/trash/restore/{file_id}")
 def restoreFromTrash(file_id: int):
     set_trash_state(file_id, 0)
-    return {"status": "ok", "message": STATUS_MESSAGES["TRASH_RESTORED"]}
+    return {"status": "ok"}
 
-# Полная очистка корзины
+# Чистим корзину
 @app.delete("/api/trash/empty")
 def emptyTrash():
     connection = sqlite3.connect(DB_PATH, timeout=30)
@@ -179,14 +179,13 @@ def emptyTrash():
     connection.close()
     return {"status": "ok", "message": "Корзина успешно очищена"}
 
-# Загрузка файла 
+# загружаем тут файл
 @app.post("/api/upload")
 async def uploadFile(file: UploadFile = File(...)):
     file_bytes = await file.read()
     file_size = len(file_bytes)
     file_hash = hashlib.sha256(file_bytes).hexdigest()
 
-    # Определение MIME-типа
     fn_lower = file.filename.lower()
     if fn_lower.endswith(".pdf"):
         content_type = "application/pdf"
@@ -197,10 +196,10 @@ async def uploadFile(file: UploadFile = File(...)):
     else:
         content_type = "application/octet-stream"
 
-    # Проверка лимита диска
+
     connection = sqlite3.connect(DB_PATH, timeout=30)
     cursor = connection.cursor()
-    cursor.execute("SELECT SUM(FileSize) FROM FILESDB WHERE IsTrash = 0")
+    cursor.execute("SELECT SUM(FileSize) FROM FILESDB")
     row = cursor.fetchone()
 
     current_used = 0
@@ -213,7 +212,7 @@ async def uploadFile(file: UploadFile = File(...)):
         write_system_log("LIMIT_EXCEEDED", "Не хватило места на диске", file.filename, file_hash, STATUS_MESSAGES["STORAGE_FULL"])
         return {"status": "error", "message": STATUS_MESSAGES["STORAGE_FULL"]}
 
-    # Сохранение на диск
+
     final_filename = f"{file_hash[:8]}_{file.filename}"
     final_path = UPLOAD_DIR / final_filename
 
@@ -226,14 +225,14 @@ async def uploadFile(file: UploadFile = File(...)):
         write_system_log("DISK_ERROR", "Сбой файловой системы", file.filename, file_hash, STATUS_MESSAGES["SAVE_ERROR"])
         return {"status": "error", "message": STATUS_MESSAGES["SAVE_ERROR"]}
 
-    # Запись метаданных файла в базу
+    
     cursor.execute(
         "INSERT INTO FILESDB (Filename, Filepath, FileSize, FileType, FileHash, IsTrash) "
         "VALUES (?, ?, ?, ?, ?, 0)",
         (file.filename, str(final_path), file_size, content_type, file_hash)
     )
 
-    # Лог успешного сохранения
+  
     cursor.execute(
         "INSERT INTO SECURITYDB (EventType, Details, FileName, FileHash, ScanResult, AntVirCounter, TotalAntViruses) "
         "VALUES (?, ?, ?, ?, ?, 0, 0)",
@@ -244,7 +243,7 @@ async def uploadFile(file: UploadFile = File(...)):
     connection.close()
     return {"status": "ok", "message": STATUS_MESSAGES["SUCCESS"]}
 
-# Скачивание файла
+# здесь скачиваем файл
 @app.get("/api/download/{file_id}")
 def downloadFile(file_id: int):
     connection = sqlite3.connect(DB_PATH, timeout=30)
@@ -270,7 +269,7 @@ def downloadFile(file_id: int):
         content_disposition_type="inline"
     )
 
-# Окончательное удаление файла
+# удаляем тут файл
 @app.delete("/api/files/{file_id}")
 def deleteFile(file_id: int):
     connection = sqlite3.connect(DB_PATH, timeout=30)
@@ -346,7 +345,6 @@ def createLink(file_id: int, request: Request, hours: int = 72):
     connection.commit()
     connection.close()
 
-    # Определение внешнего домена через заголовки прокси
     host = request.headers.get("x-forwarded-host")
     if not host:
         host = request.headers.get("host")

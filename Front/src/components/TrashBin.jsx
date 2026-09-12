@@ -29,7 +29,6 @@ export default function TrashBin({ SetScreen }) {
             .then(() => loadTrash())
     }
 
-    // Подготовка кнопки очистки корзины
     let emptyTrashButtonElement = null
     if (trashFiles.length > 0) {
         emptyTrashButtonElement = (
@@ -37,7 +36,6 @@ export default function TrashBin({ SetScreen }) {
         )
     }
 
-    // Подготовка строк таблицы
     let trashRowsElement = null
     if (trashFiles.length === 0) {
         trashRowsElement = (
