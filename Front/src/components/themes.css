@@ -217,3 +217,44 @@
   border: none;
   display: block;
 }
+/* Окно авторизации */
+.auth-box {
+  max-width: 380px;
+  margin: 60px auto;
+  text-align: center;
+  border: 1px solid;
+  padding: 20px;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 15px 0;
+}
+/* === МОБИЛЬНАЯ АДАПТАЦИЯ === */
+@media (max-width: 768px) {
+  .app-header {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .app-layout {
+    flex-direction: column;
+  }
+
+  .sidebar-dock {
+    width: 100%;
+    border-right: none;
+    border-bottom: 2px solid;
+    box-sizing: border-box;
+  }
+
+  /* Чтобы таблица не сминалась в кашу, а скроллилась вбок */
+  .storage-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}

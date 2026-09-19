@@ -1,4 +1,4 @@
-# === ЭТАП 1: Сборка React фронтенда ===
+
 FROM node:20-alpine AS frontend-builder
 WORKDIR /app/Front
 COPY Front/package*.json ./
@@ -6,7 +6,6 @@ RUN npm install
 COPY Front/ .
 RUN npm run build
 
-# === ЭТАП 2: Запуск FastAPI бэкенда ===
 FROM python:3.10-slim
 WORKDIR /app/Back
 

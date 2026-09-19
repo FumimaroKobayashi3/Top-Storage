@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 
-export default function FileManager({ SetScreen }) {
+export default function FileManager({ SetScreen, User }) {
     const [filesList, setFilesList] = useState([])
     const [selectedCategory, setSelectedCategory] = useState("ALL")
     const [previewFile, setPreviewFile] = useState(null)
@@ -13,35 +13,37 @@ export default function FileManager({ SetScreen }) {
     const [generatedLink, setGeneratedLink] = useState("")
 
     function loadFiles() {
-        fetch('/api/files')
+        const uid = User ? User.user_id : 1
+        fetch(`/api/files?user_id=${uid}`)
             .then(res => res.json())
             .then(data => setFilesList(data))
             .catch(err => console.log("Ошибка загрузки файлов:", err))
     }
-
     useEffect(() => {
         loadFiles()
     }, [])
 
     function handleFileUpload(e) {
-        const file = e.target.files[0]
-        if (file) {
-            setUploadStatus("Загрузка и сохранение файла...")
-            const formData = new FormData()
-            formData.append("file", file)
+            const file = e.target.files[0]
+            if (file) {
+                setUploadStatus("Загрузка и сохранение файла...")
+                const formData = new FormData()
+                formData.append("file", file)
 
-            fetch('/api/upload', {
-                method: 'POST',
-                body: formData
-            })
-            .then(res => res.json())
-            .then(data => {
-                setUploadStatus(data.message)
-                loadFiles()
-            })
-            .catch(() => setUploadStatus("Ошибка загрузки"))
+                const uid = User ? User.user_id : 1
+
+                fetch(`/api/upload?user_id=${uid}`, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(data => {
+                    setUploadStatus(data.message)
+                    loadFiles()
+                })
+                .catch(() => setUploadStatus("Ошибка загрузки"))
+            }
         }
-    }
 
     function moveToTrash(id) {
         fetch(`/api/trash/move/${id}`, { method: 'POST' })
@@ -258,10 +260,9 @@ export default function FileManager({ SetScreen }) {
                 </tbody>
             </table>
 
-            {/* Окно генерации сгорающей ссылки */}
+
             {shareBoxElement}
 
-            {/* Окно предпросмотра выбранного файла */}
             {previewBoxElement}
         </div>
     )

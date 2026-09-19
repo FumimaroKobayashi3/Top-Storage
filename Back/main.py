@@ -3,6 +3,7 @@ from fastapi.responses import RedirectResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
+from pydantic import BaseModel
 import hashlib
 import sqlite3
 import uuid
@@ -39,7 +40,10 @@ if not UPLOAD_DIR.exists():
 
 InitDB.init_db(DB_PATH)
 
-
+class AuthSchema(BaseModel):
+    username: str
+    password: str
+    
 def check_db_schema():
     connection = sqlite3.connect(DB_PATH, timeout=30)
     cursor = connection.cursor()
@@ -68,13 +72,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-def write_system_log(event_type: str, details: str, filename: str, file_hash: str, scan_result: str):
+def write_system_log(event_type: str, details: str, filename: str, file_hash: str, stats_result: str):
     connection = sqlite3.connect(DB_PATH, timeout=30)
     cursor = connection.cursor()
     cursor.execute(
-        "INSERT INTO SECURITYDB (EventType, Details, FileName, FileHash, ScanResult, AntVirCounter, TotalAntViruses) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (event_type, details, filename, file_hash, scan_result, 0, 0)
+        "INSERT INTO SECURITYDB (EventType, Details, FileName, FileHash, StatsResult)"
+        "VALUES (?, ?, ?, ?, ?)",
+        (event_type, details, filename, file_hash, stats_result)
     )
     connection.commit()
     connection.close()
@@ -104,13 +108,13 @@ def getStorageStats():
         "trash_files": trash_files
     }
     
-def fetch_files_from_db(is_trash: int):
+def fetch_files_from_db(is_trash: int, user_id: int = None):
     connection = sqlite3.connect(DB_PATH, timeout=30)
     cursor = connection.cursor()
     cursor.execute(
         "SELECT FileID, Filename, Filepath, FileSize, FileType, FileHash, UploadDate "
-        "FROM FILESDB WHERE IsTrash = ? ORDER BY FileID DESC",
-        (is_trash,)
+        "FROM FILESDB WHERE IsTrash = ? AND UserID = ? ORDER BY FileID DESC",
+        (is_trash, user_id)
     )
     rows = cursor.fetchall()
     connection.close()
@@ -131,15 +135,15 @@ def fetch_files_from_db(is_trash: int):
 
 # Список активных файлов
 @app.get("/api/files")
-def getFilesList():
-    return fetch_files_from_db(is_trash=0)
+def getFilesList(user_id: int = 1):
+    return fetch_files_from_db(is_trash=0, user_id=user_id)
 
 # Список файлов в корзине
 # def trash state это функция управление стэйтом
 # 0 это не в корзине 1 это в корзине
 @app.get("/api/trash")
-def getTrashFiles():
-    return fetch_files_from_db(is_trash=1)
+def getTrashFiles(user_id: int = 1):
+    return fetch_files_from_db(is_trash=1, user_id=user_id)
 
 def set_trash_state(file_id: int, state: int):
     connection = sqlite3.connect(DB_PATH, timeout=30)
@@ -181,7 +185,7 @@ def emptyTrash():
 
 # загружаем тут файл
 @app.post("/api/upload")
-async def uploadFile(file: UploadFile = File(...)):
+async def uploadFile(file: UploadFile = File(...), user_id: int = 1):
     file_bytes = await file.read()
     file_size = len(file_bytes)
     file_hash = hashlib.sha256(file_bytes).hexdigest()
@@ -227,15 +231,15 @@ async def uploadFile(file: UploadFile = File(...)):
 
     
     cursor.execute(
-        "INSERT INTO FILESDB (Filename, Filepath, FileSize, FileType, FileHash, IsTrash) "
-        "VALUES (?, ?, ?, ?, ?, 0)",
-        (file.filename, str(final_path), file_size, content_type, file_hash)
+        "INSERT INTO FILESDB (Filename, UserID, Filepath, FileSize, FileType, FileHash, IsTrash) "
+        "VALUES (?, ?, ?, ?, ?, ?, 0)",
+        (file.filename, user_id, str(final_path), file_size, content_type, file_hash)
     )
 
   
     cursor.execute(
-        "INSERT INTO SECURITYDB (EventType, Details, FileName, FileHash, ScanResult, AntVirCounter, TotalAntViruses) "
-        "VALUES (?, ?, ?, ?, ?, 0, 0)",
+        "INSERT INTO SECURITYDB (EventType, Details, FileName, FileHash, StatsResult) "
+        "VALUES (?, ?, ?, ?, ?)",
         ("UPLOAD_SUCCESS", "Файл принят сервером", file.filename, file_hash, STATUS_MESSAGES["SUCCESS"])
     )
 
@@ -299,7 +303,7 @@ def getSecurityLogs():
     connection = sqlite3.connect(DB_PATH, timeout=30)
     cursor = connection.cursor()
     cursor.execute(
-        "SELECT LogId, EventType, Details, FileName, FileHash, ScanResult, AntVirCounter, TotalAntViruses, Timestamp "
+        "SELECT LogId, EventType, Details, FileName, FileHash, StatsResult, Timestamp "
         "FROM SECURITYDB ORDER BY LogId DESC"
     )
     rows = cursor.fetchall()
@@ -313,10 +317,8 @@ def getSecurityLogs():
             "Details": r[2],
             "FileName": r[3],
             "FileHash": r[4],
-            "ScanResult": r[5],
-            "AntVirCounter": r[6],
-            "TotalAntViruses": r[7],
-            "Timestamp": r[8]
+            "StatsResult": r[5],
+            "Timestamp": r[6]
         })
     return result
 
@@ -407,6 +409,51 @@ def downloadPubFile(token: str):
         filename=filename,
         media_type=filetype
     )
+    
+@app.post("/api/signup")
+def signup(data: AuthSchema):
+    if not data.username or not data.password:
+        raise HTTPException(status_code=400, detail="Введите имя пользователя и пароль")
+
+    pwd_hash = hashlib.sha256(data.password.encode("utf-8")).hexdigest()
+
+    connection = sqlite3.connect(DB_PATH, timeout=30)
+    cursor = connection.cursor()
+    cursor.execute("SELECT UserID FROM USERSDB WHERE Username = ?", (data.username,))
+    if cursor.fetchone() is not None:
+        connection.close()
+        raise HTTPException(status_code=400, detail="Имя пользователя уже существует")
+
+    cursor.execute(
+        "INSERT INTO USERSDB (Username, PasswordHash) VALUES (?, ?)", 
+        (data.username, pwd_hash)
+    )
+    connection.commit()
+    connection.close()
+    return {"status": "ok", "message": "Пользователь успешно зарегистрирован"}
+
+@app.post("/api/login")
+def login(data: AuthSchema):
+    pwd_hash = hashlib.sha256(data.password.encode("utf-8")).hexdigest()
+    
+    connection = sqlite3.connect(DB_PATH, timeout=30)
+    cursor = connection.cursor()
+    cursor.execute(
+        "SELECT UserID, Username FROM USERSDB WHERE Username = ? AND PasswordHash = ?", 
+        (data.username, pwd_hash)
+    )
+    row = cursor.fetchone()
+    connection.close()
+    
+    if row is None:
+        raise HTTPException(status_code=401, detail="Неверное имя пользователя или пароль")
+        
+    return {
+        "status": "ok", 
+        "message": "Успешный вход",
+        "user_id": row[0],
+        "username": row[1]
+    }
 
 # Раздача фронтенда
 frontend_dist = Path("/app/Front/dist")

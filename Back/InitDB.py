@@ -8,6 +8,24 @@ def init_db(db_path='Top.db'):
         cursor.execute("PRAGMA journal_mode=WAL;")
         cursor.execute("PRAGMA foreign_keys = ON;")
 
+        #юзеры
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS USERSDB(
+            UserID INTEGER PRIMARY KEY AUTOINCREMENT,
+            Username TEXT NOT NULL UNIQUE,
+            PasswordHash TEXT NOT NULL,
+            Email TEXT,
+            IsAdmin INTEGER DEFAULT 0,
+            CreatedAt TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        #defaultuser
+        admin_hash = "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918"
+        cursor.execute('''
+        INSERT OR IGNORE INTO USERSDB (Username, PasswordHash, IsAdmin)
+        VALUES ('admin', ?, 1)
+        ''', (admin_hash,))
+
         # Таблица файлов
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS FILESDB(
@@ -20,8 +38,11 @@ def init_db(db_path='Top.db'):
             IsTrash INTEGER DEFAULT 0,
             UploadDate TEXT DEFAULT CURRENT_TIMESTAMP,
             IsPublic INTEGER DEFAULT 0,
-            PublicToken TEXT
+            PublicToken TEXT,
+            UserID INTEGER NOT NULL DEFAULT 1,
+            FOREIGN KEY (UserID) REFERENCES USERSDB(UserID) ON DELETE CASCADE
         )''')
+
 
         # Настройки хранилища (Реальный лимит Amvera Standard: 5 ГБ)
         cursor.execute('''
@@ -44,9 +65,7 @@ def init_db(db_path='Top.db'):
             Details TEXT NOT NULL,
             FileName TEXT NOT NULL, 
             FileHash TEXT NOT NULL,
-            ScanResult TEXT NOT NULL,
-            AntVirCounter INTEGER NOT NULL,
-            TotalAntViruses INTEGER NOT NULL,
+            StatsResult TEXT NOT NULL,
             Timestamp TEXT DEFAULT CURRENT_TIMESTAMP
         )''')
 

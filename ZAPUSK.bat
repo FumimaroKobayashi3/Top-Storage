@@ -5,36 +5,32 @@ chcp 65001 > nul
 set "ROOT_DIR=%~dp0"
 cd /d "%ROOT_DIR%"
 
-echo [1/3] Проверка бэкенда Python...
+echo ===================================================
+echo   Запуск файлового хранилища «ТОП»
+echo ===================================================
+
+if not exist "Front\dist" (
+    echo [ОШИБКА] Не найдена папка Front\dist!
+    pause
+    exit /b 1
+)
+
 cd Back
 
-if not exist "venv" (
-    echo Создание свежего venv...
-    python -m venv venv
+:: Проверяем наличие venv или системного Python
+if exist "venv\Scripts\python.exe" (
+    set "PY=venv\Scripts\python.exe"
+) else (
+    set "PY=python"
 )
 
-echo Установка/обновление зависимостей...
-call venv\Scripts\activate.bat
-python -m pip install -r requirements.txt
+:: Запуск базы и сервера на локальном адресе 127.0.0.1
+"%PY%" InitDB.py >nul 2>nul
+start "Storage_TOP_Backend" "%PY%" -m uvicorn main:app --host 127.0.0.1 --port 8000
 
-echo Инициализация базы данных...
-python InitDB.py
-cd ..
+:: Пауза 2 секунды на запуск сокета и открытие сайта в браузере
+timeout /t 2 > nul
+start http://127.0.0.1:8000
 
-echo [2/3] Проверка фронтенда React...
-cd Front
-if not exist "node_modules" (
-    echo Установка модулей Node.js...
-    call npm install
-)
-cd ..
-
-echo [3/3] Запуск сервисов...
-start "Backend_TOP" cmd /k "cd /d "%ROOT_DIR%Back" && call venv\Scripts\activate.bat && python -m uvicorn main:app --reload --port 8000"
-start "Frontend_TOP" cmd /k "cd /d "%ROOT_DIR%Front" && npm run dev"
-
-echo =========================================
-echo  Система «ТОП» успешно запущена!
-echo  Бэкенд:  http://127.0.0.1:8000
-echo  Фронтенд: http://localhost:5173
-echo =========================================
+echo Сервер работает на http://127.0.0.1:8000
+echo Черное окно сервера не закрывай до конца показа.

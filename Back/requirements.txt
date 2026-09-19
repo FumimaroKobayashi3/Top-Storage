@@ -1,4 +1,5 @@
 fastapi[all]
 pydantic-settings
+pydantic
 requests
 python-multipart

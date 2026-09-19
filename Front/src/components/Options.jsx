@@ -1,6 +1,6 @@
 import { useState } from "react"
 
-export default function Options({ SetScreen, themes, switchTheme }) {
+export default function Options({ SetScreen, themes, switchTheme, User, onLogout }) {
     const [dbStat, setDbStat] = useState("Не проверено")
     const [logs, setLogs] = useState([])
     const [showLogs, setShowLogs] = useState(false)
@@ -43,7 +43,7 @@ export default function Options({ SetScreen, themes, switchTheme }) {
             <tr key={log.LogId}>
                 <td>{log.EventType}</td>
                 <td>{log.FileName}</td>
-                <td>{log.ScanResult}</td>
+                <td>{log.StatsResult}</td>
                 <td>{log.Timestamp}</td>
             </tr>
         ))
@@ -109,6 +109,13 @@ export default function Options({ SetScreen, themes, switchTheme }) {
             <div className="options-section">
                 <h3>Параметры окружения</h3>
                 <p>Лимит диска: 5 ГБ</p>
+            </div>
+            <hr />
+            {/* Профиль пользователя */}
+            <div className="options-section">
+                <h3>Профиль</h3>
+                <p>Вы вошли как: <b>{User.username}</b></p>
+                <button onClick={onLogout} className="danger-button">Выйти из профиля ✘</button>
             </div>
         </div>
     )
