@@ -1,6 +1,7 @@
 
 FROM node:20-alpine AS frontend-builder
 WORKDIR /app/Front
+RUN echo "build-cache-bust-2026-09-28-v1"
 COPY Front/package*.json ./
 RUN npm install
 COPY Front/ .
@@ -10,11 +11,12 @@ FROM python:3.10-slim
 WORKDIR /app/Back
 
 ENV PYTHONUNBUFFERED=1
-
+RUN echo "build-cache-bust-2026-09-28-v1"
 COPY Back/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY Back/ /app/Back/
+
 COPY --from=frontend-builder /app/Front/dist /app/Front/dist
 
 EXPOSE 80

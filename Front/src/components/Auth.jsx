@@ -15,7 +15,12 @@ export default function Auth({ onLogin }) {
             return
         }
 
-        const url = isRegister ? "/api/signup" : "/api/login"
+        let url = ""
+        if (isRegister) {
+            url = "/api/signup"
+        } else {
+            url = "/api/login"
+        }
 
         fetch(url, {
             method: "POST",

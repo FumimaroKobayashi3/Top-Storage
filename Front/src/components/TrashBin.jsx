@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react"
 
-export default function TrashBin({ SetScreen }) {
+export default function TrashBin({ SetScreen, User }) {
     const [trashFiles, setTrashFiles] = useState([])
 
     function loadTrash() {
-        fetch('/api/trash')
+        const uid = User ? User.user_id : 1
+        fetch(`/api/trash?user_id=${uid}`)
             .then(res => res.json())
             .then(data => setTrashFiles(data))
             .catch(err => console.log("Ошибка загрузки корзины:", err))
