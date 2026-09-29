@@ -26,7 +26,8 @@ export default function TrashBin({ SetScreen, User }) {
     }
 
     function emptyTrash() {
-        fetch('/api/trash/empty', { method: 'DELETE' })
+        const uid = User ? User.user_id : 1
+        fetch(`/api/trash/empty?user_id=${uid}`, { method: 'DELETE' })
             .then(() => loadTrash())
     }
 

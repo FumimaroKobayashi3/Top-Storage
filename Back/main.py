@@ -20,7 +20,7 @@ STORAGE_LIMIT_5GB = 5368709120
 STATUS_MESSAGES = {
     "SUCCESS": " Файл был выложен успешно ",
     "STORAGE_FULL": "Диск переполнен",
-    "PAYLOAD_TOO_LARGE": "Занесите ещё 3к и будет вам на 6 гб ОЗУ и 2 ядра цпу )",
+    "PAYLOAD_TOO_LARGE": "хранилище перегруженно",
     "SAVE_ERROR": "Не получилось сохранить на диск",
     "TRASH_MOVED": "файл отправлен в корзину",
 
@@ -85,18 +85,17 @@ def write_system_log(event_type: str, details: str, filename: str, file_hash: st
 
 # Статистика занятого места включая корзину
 @app.get("/api/stats")
-def getStorageStats():
+def getStorageStats(user_id: int = 1):
     connection = sqlite3.connect(DB_PATH, timeout=30)
     cursor = connection.cursor()
 
-    
-    cursor.execute("SELECT COALESCE(SUM(FileSize), 0) FROM FILESDB")
+    cursor.execute("SELECT COALESCE(SUM(FileSize), 0) FROM FILESDB WHERE UserID = ?", (user_id,))
     used_bytes = cursor.fetchone()[0]
 
-    cursor.execute("SELECT COUNT(*) FROM FILESDB WHERE IsTrash = 0")
+    cursor.execute("SELECT COUNT(*) FROM FILESDB WHERE IsTrash = 0 AND UserID = ?", (user_id,))
     total_files = cursor.fetchone()[0]
 
-    cursor.execute("SELECT COUNT(*) FROM FILESDB WHERE IsTrash = 1")
+    cursor.execute("SELECT COUNT(*) FROM FILESDB WHERE IsTrash = 1 AND UserID = ?", (user_id,))
     trash_files = cursor.fetchone()[0]
 
     connection.close()
@@ -107,7 +106,6 @@ def getStorageStats():
         "total_files": total_files,
         "trash_files": trash_files
     }
-    
 def fetch_files_from_db(is_trash: int, user_id: int = None):
     connection = sqlite3.connect(DB_PATH, timeout=30)
     cursor = connection.cursor()
@@ -164,10 +162,10 @@ def restoreFromTrash(file_id: int):
 
 # Чистим корзину
 @app.delete("/api/trash/empty")
-def emptyTrash():
+def emptyTrash(user_id: int = 1):
     connection = sqlite3.connect(DB_PATH, timeout=30)
     cursor = connection.cursor()
-    cursor.execute("SELECT Filepath FROM FILESDB WHERE IsTrash = 1")
+    cursor.execute("SELECT Filepath FROM FILESDB WHERE IsTrash = 1 AND UserID = ?", (user_id,))
     rows = cursor.fetchall()
 
     for r in rows:
@@ -178,7 +176,7 @@ def emptyTrash():
             except OSError:
                 pass
 
-    cursor.execute("DELETE FROM FILESDB WHERE IsTrash = 1")
+    cursor.execute("DELETE FROM FILESDB WHERE IsTrash = 1 AND UserID = ?", (user_id,))
     connection.commit()
     connection.close()
     return {"status": "ok", "message": "Корзина успешно очищена"}
@@ -217,13 +215,12 @@ async def uploadFile(file: UploadFile = File(...), user_id: int = 1):
         return {"status": "error", "message": STATUS_MESSAGES["STORAGE_FULL"]}
 
 
-    final_filename = f"{file_hash[:8]}_{file.filename}"
+    final_filename = f"{uuid.uuid4().hex[:10]}_{file.filename}"
     final_path = UPLOAD_DIR / final_filename
 
     try:
-        if not final_path.exists():
-            with open(final_path, "wb") as f:
-                f.write(file_bytes)
+        with open(final_path, "wb") as f:
+            f.write(file_bytes)
     except OSError:
         connection.close()
         write_system_log("DISK_ERROR", "Сбой файловой системы", file.filename, file_hash, STATUS_MESSAGES["SAVE_ERROR"])

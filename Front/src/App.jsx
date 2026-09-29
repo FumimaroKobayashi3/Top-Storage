@@ -60,7 +60,7 @@ export default function App() {
                 />
             )
         }
-        return <MainMen SetScreen={setScreen} />
+        return <MainMen SetScreen={setScreen} User={User} />
     }
 
     return (

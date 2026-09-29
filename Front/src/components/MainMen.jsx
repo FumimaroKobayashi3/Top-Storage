@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 
-export default function MainMen({ SetScreen }) {
+export default function MainMen({ SetScreen, User }) {
     const [stats, setStats] = useState({
         used_bytes: 0,
         limit_bytes: 5368709120, // 5 ГБ по дефолту
@@ -9,7 +9,8 @@ export default function MainMen({ SetScreen }) {
     })
 
     function loadStats() {
-        fetch('/api/stats')
+        const uid = User ? User.user_id : 1
+        fetch(`/api/stats?user_id=${uid}`)
             .then(res => res.json())
             .then(data => setStats(data))
             .catch(err => console.log("Косяк при фетче статистики:", err))
