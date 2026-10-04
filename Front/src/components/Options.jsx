@@ -30,7 +30,6 @@ export default function Options({ SetScreen, themes, switchTheme, User, onLogout
             .catch(err => console.log("Ошибка загрузки логов:", err))
     }
 
-    // Вынос логики строк таблицы логов
     let logsRowsElement = null
     if (logs.length === 0) {
         logsRowsElement = (

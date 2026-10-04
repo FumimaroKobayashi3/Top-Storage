@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react"
 
 export default function MainMen({ SetScreen, User }) {
+    // 5 ГБ в байтах (5 * 1024 * 1024 * 1024)
     const [stats, setStats] = useState({
         used_bytes: 0,
-        limit_bytes: 5368709120, // 5 ГБ по дефолту
+        limit_bytes: 5 * 1024 * 1024 * 1024,
         total_files: 0,
         trash_files: 0
     })
@@ -20,12 +21,9 @@ export default function MainMen({ SetScreen, User }) {
         loadStats()
     }, [])
 
-    // Перевод байтов в гигабайты
-    const usedBytes = stats.used_bytes || 0
-    const limitBytes = stats.limit_bytes || 5368709120
-
-    const usedGB = (usedBytes / 1073741824).toFixed(2)
-    const limitGB = (limitBytes / 1073741824).toFixed(0)
+    const bytesInGb = 1024 * 1024 * 1024
+    const usedGB = (stats.used_bytes / bytesInGb).toFixed(2)
+    const limitGB = (stats.limit_bytes / bytesInGb).toFixed(0)
 
     return (
         <div className="main-menu-container">
@@ -38,18 +36,22 @@ export default function MainMen({ SetScreen, User }) {
                 <div className="stat-card">
                     <h4>Занятое место</h4>
                     <p>{usedGB} ГБ из {limitGB} ГБ</p>
-                    <progress value={usedBytes} max={limitBytes} className="progress-bar-container" />
+                    <progress 
+                        value={stats.used_bytes} 
+                        max={stats.limit_bytes} 
+                        className="progress-bar-container" 
+                    />
                 </div>
 
                 <div className="stat-card">
                     <h4>Активных файлов</h4>
-                    <p>{stats.total_files || 0} шт.</p>
+                    <p>{stats.total_files} шт.</p>
                     <button onClick={() => SetScreen("FileManager")}>Открыть диск</button>
                 </div>
 
                 <div className="stat-card">
                     <h4>Файлов в корзине</h4>
-                    <p className="badge-blocked">{stats.trash_files || 0} шт.</p>
+                    <p className="badge-blocked">{stats.trash_files} шт.</p>
                     <button onClick={() => SetScreen("TrashBin")}>Открыть корзину</button>
                 </div>
             </div>

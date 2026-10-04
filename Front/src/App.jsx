@@ -9,18 +9,17 @@ import "./components/themes.css"
 
 export default function App() {
     const [screen, setScreen] = useState("Menu")
-
-    // Состояние темы (по умолчанию Темная)
     const [theme, setTheme] = useState("theme-dark")
-    const [User, SetUser] = useState(() => {
-        const saved = localStorage.getItem("top_user")
-        if (saved) {
-            return JSON.parse(saved)
-        }
-        return null
-    })
 
-    // Функция переключения темы
+    // Проверяем сохраненную сессию пользователя в localStorage
+    let initialUser = null
+    const savedUser = localStorage.getItem("top_user")
+    if (savedUser) {
+        initialUser = JSON.parse(savedUser)
+    }
+    const [User, SetUser] = useState(initialUser)
+
+
     function switchTheme() {
         if (theme === "theme-dark") {
             setTheme("theme-light")
@@ -41,7 +40,6 @@ export default function App() {
             </div>
         )
     }
-    // если он залогинен
     function renderScreen() {
         if (screen === "FileManager") {
             return <FileManager SetScreen={setScreen} User={User} />

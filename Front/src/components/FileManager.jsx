@@ -236,7 +236,7 @@ export default function FileManager({ SetScreen, User }) {
 
             <hr />
 
-            {/* Фильтр по категориям */}
+
             <div className="category-tree">
                 <b>Категории: </b>
                 <button onClick={() => setSelectedCategory("ALL")}>Все ({filesList.length})</button>
