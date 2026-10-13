@@ -13,7 +13,7 @@ import time
 try:
     import InitDB
 except ImportError:
-    from Back import InitDB
+    from Back import InitDB # type: ignore
 
 STORAGE_LIMIT_5GB = 5368709120
 
